@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.5
+// @version      2.0.6
 // @description  知乎桌面阅读优化脚本：响应式布局、系统／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1172,6 +1172,28 @@
             html .TopstoryItem, html .TopstoryItem .Card {
                 border-bottom-color: var(--zh-reading-line) !important;
             }
+            /* 在节点插入时即生效，哈希容器、过渡层和伪元素不能残留站点暗色。 */
+            html body :where(.Comments-container, .CommentsV2, [data-zh-comment-dialog], .Modal-content:has(.CommentContent), [role="dialog"]:has(.CommentContent)) :where(div, section, header, footer, form, span, button) {
+                background-color: transparent !important;
+                background-image: none !important;
+                border-color: var(--zh-reading-line) !important;
+                box-shadow: none !important;
+                color: inherit;
+                transition-property: transform !important;
+            }
+            html body :where(.Comments-container, .CommentsV2, [data-zh-comment-dialog], .Modal-content:has(.CommentContent), [role="dialog"]:has(.CommentContent)) :where(div, section, header, footer, form, span, button)::before,
+            html body :where(.Comments-container, .CommentsV2, [data-zh-comment-dialog], .Modal-content:has(.CommentContent), [role="dialog"]:has(.CommentContent)) :where(div, section, header, footer, form, span, button)::after {
+                background: transparent !important;
+                border-color: var(--zh-reading-line) !important;
+                box-shadow: none !important;
+            }
+            html :is(.Modal-content:has(.CommentContent), [role="dialog"]:has(.CommentContent), [data-zh-comment-dialog]) {
+                background: var(--zh-reading-card) !important;
+                color: var(--zh-reading-text) !important;
+                opacity: 1 !important;
+                animation: none !important;
+                transition: none !important;
+            }
             /* 评论区独立渲染，正文主题不会自动覆盖其内容、排序与编辑器。 */
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) {
                 background: var(--zh-reading-card) !important;
@@ -1182,7 +1204,7 @@
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(div, section, span, button, input, textarea) {
                 border-color: var(--zh-reading-line) !important;
             }
-            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.CommentContent, .CommentItem-content, [data-zh-comment-heading]),
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.CommentContent, .CommentItem-content, [data-zh-comment-heading], [data-zh-comment-heading] *),
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) a[href*="/people/"] {
                 color: var(--zh-reading-text) !important;
             }
@@ -1207,6 +1229,7 @@
             }
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(div, section) { box-shadow: none !important; }
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) button.Button--grey {
+                border-color: transparent !important;
                 background: var(--zh-reading-bg) !important;
             }
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(button.Button--blue, button.is-active, button[aria-pressed="true"]) {
@@ -1256,7 +1279,7 @@
                 border-color: var(--zh-reading-line) !important;
             }
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.InputLike, .Input-wrapper, textarea, .Editable-content, .public-DraftEditor-content) {
-                background: var(--zh-reading-bg) !important;
+                background: var(--zh-reading-card) !important;
                 color: var(--zh-reading-text) !important;
                 border-color: var(--zh-reading-line) !important;
                 caret-color: var(--zh-reading-text) !important;
@@ -2072,7 +2095,7 @@
             });
             root.querySelectorAll('div, span, button').forEach(element => {
                 if (element.closest('.CommentContent, .CommentItem-content, .Editable')) return;
-                if (element.children.length === 0 && /^(?:\d+\s*条(?:评论|回复)|评论回复)$/.test(element.textContent.trim())) {
+                if (/^(?:\d+\s*条(?:评论|回复)|评论回复)$/.test(element.textContent.trim()) && !element.querySelector('.CommentContent, .CommentItem-content')) {
                     if (!element.hasAttribute('data-zh-comment-heading')) element.setAttribute('data-zh-comment-heading', 'true');
                     for (let surface = element.parentElement; surface && surface !== root; surface = surface.parentElement) {
                         const background = getComputedStyle(surface).backgroundColor;
