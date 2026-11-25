@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.11
+// @version      2.0.12
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1116,6 +1116,8 @@
         const theme = resolveReadingTheme();
         if (theme && theme.bg) {
             const profileCard = `:is(.HoverCard, .HoverCard-content, .HoverCardContainer, .UserCard, .MemberCard,
+                .HoverCard-loading, .UserCard-loading, .MemberCard-loading,
+                .Popover-content:has(a[href*="/people/"] img):has([aria-busy="true"], [role="progressbar"], .Loading, .Skeleton),
                 .Popover-content:has(a[href*="/people/"]):has(.FollowButton),
                 [data-zh-profile-card])`;
             css += `
@@ -1235,14 +1237,26 @@
                 color: var(--zh-reading-muted) !important;
             }
             html body ${profileCard} button {
-                background: var(--zh-reading-bg) !important;
-                color: var(--zh-reading-text) !important;
-                border-color: var(--zh-reading-line) !important;
-            }
-            html body ${profileCard}
-                button:is(.Button--primary, .Button--blue, :hover, :focus-visible):not(:disabled) {
                 background: var(--zh-reading-line) !important;
                 color: var(--zh-reading-text) !important;
+                border-color: transparent !important;
+            }
+            html body ${profileCard} button:is(:hover, :focus-visible):not(:disabled) {
+                background: color-mix(in srgb, var(--zh-reading-line), var(--zh-reading-text) 12%) !important;
+            }
+            html body ${profileCard} :is(.Loading, .Spinner, [role="progressbar"], [aria-busy="true"]) {
+                background-color: var(--zh-reading-card) !important;
+                color: var(--zh-reading-muted) !important;
+            }
+            html body ${profileCard} :is(.Loading, .Spinner, [role="progressbar"]) svg {
+                color: var(--zh-reading-muted) !important;
+            }
+            html body ${profileCard} :is(.Skeleton, .Skeleton-row, .Skeleton-line, .Placeholder-row) {
+                background: var(--zh-reading-line) !important;
+            }
+            html body ${profileCard} :is(.Skeleton, .Skeleton-row, .Skeleton-line, .Placeholder-row)::before,
+            html body ${profileCard} :is(.Skeleton, .Skeleton-row, .Skeleton-line, .Placeholder-row)::after {
+                background: none !important;
             }
             /* 评论区独立渲染，正文主题不会自动覆盖其内容、排序与编辑器。 */
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) {
