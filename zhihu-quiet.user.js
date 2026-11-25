@@ -2,8 +2,8 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.6
-// @description  知乎桌面阅读优化脚本：响应式布局、系统／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
+// @version      2.0.7
+// @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
 // 第三方版权与许可说明：https://github.com/Zorabi/zhihu-quiet/blob/main/THIRD_PARTY_NOTICES.md
@@ -118,7 +118,8 @@
             const value = stored?.[key];
             cleaned[key] = typeof value === typeof fallback ? value : fallback;
         }
-        if (!['system', 'original', 'graphite'].includes(cleaned.readingTheme)) cleaned.readingTheme = 'graphite';
+        if (cleaned.readingTheme === 'system') cleaned.readingTheme = 'light';
+        if (!['light', 'original', 'graphite'].includes(cleaned.readingTheme)) cleaned.readingTheme = 'graphite';
         return cleaned;
     }
     let config = normalizeConfig(loadConfig());
@@ -222,20 +223,13 @@
 
     // 独立于知乎自身的深色开关，颜色不依赖当前站点主题。
     const READING_THEMES = {
-        system: { name: '跟随系统' },
+        light: { name: '浅色模式', dark: false, bg: '#f6f6f6', card: '#ffffff', text: '#121212', muted: '#707a89', accent: '#175199', line: '#e5e9ee' },
         original: { name: '知乎默认' },
         graphite: { name: '石墨灰', dark: true, bg: '#202224', card: '#27292c', text: '#bfc3c8', muted: '#949ba4', accent: '#9baec4', line: '#35393e' },
     };
 
-    const LIGHT_READING_THEME = {
-        dark: false, bg: '#f6f6f6', card: '#ffffff', text: '#121212',
-        muted: '#707a89', accent: '#175199', line: '#e5e9ee'
-    };
     const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
     function resolveReadingTheme() {
-        if (config.readingTheme === 'system') {
-            return systemColorScheme.matches ? READING_THEMES.graphite : LIGHT_READING_THEME;
-        }
         return READING_THEMES[config.readingTheme];
     }
 
@@ -1194,6 +1188,17 @@
                 animation: none !important;
                 transition: none !important;
             }
+            /* 回复先显示原评论，再异步加载列表；SVG 骨架独立于背景色。 */
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog], .Modal:has(.CommentContent), [role="dialog"]:has(.CommentContent))
+                svg:has(rect):is(:has(clipPath, mask, animate, linearGradient), :has(rect[width="100%"])) {
+                visibility: hidden !important;
+            }
+            html .Modal-wrapper:has(:is(.Modal, [role="dialog"]) .CommentContent),
+            html .Modal:has(.CommentContent) {
+                opacity: 1 !important;
+                animation: none !important;
+                transition: none !important;
+            }
             /* 评论区独立渲染，正文主题不会自动覆盖其内容、排序与编辑器。 */
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) {
                 background: var(--zh-reading-card) !important;
@@ -1230,7 +1235,11 @@
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(div, section) { box-shadow: none !important; }
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) button.Button--grey {
                 border-color: transparent !important;
-                background: var(--zh-reading-bg) !important;
+                background: var(--zh-reading-line) !important;
+            }
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) button.Button--grey:is(:hover, :focus-visible):not(:disabled) {
+                background: color-mix(in srgb, var(--zh-reading-line), var(--zh-reading-text) 12%) !important;
+                color: var(--zh-reading-text) !important;
             }
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(button.Button--blue, button.is-active, button[aria-pressed="true"]) {
                 color: var(--zh-reading-accent) !important;
@@ -1696,12 +1705,9 @@
         updateDockTheme();
     }
 
-    // 初始尽早注入样式；仅在跟随系统模式下响应系统外观变化。
+    // 系统外观只用于无法读取原生页面背景时的工具条配色。
     applyAllStyles();
-    systemColorScheme.addEventListener('change', () => {
-        if (config.readingTheme === 'system') applyAllStyles();
-        else updateDockTheme();
-    });
+    systemColorScheme.addEventListener('change', updateDockTheme);
 
     // 总开关停用时仍完整恢复网站原生布局。
     function syncSidebarState() {
