@@ -1170,6 +1170,16 @@
             html .TopstoryItem, html .TopstoryItem .Card {
                 border-bottom-color: var(--zh-reading-line) !important;
             }
+            /* 加载占位与已加载卡片使用相同主题，覆盖站点仍处于暗色的骨架。 */
+            html [data-zh-loading-surface="true"],
+            html .Topstory-mainColumn :is(.Skeleton, .SkeletonLoading, .LoadingSkeleton, .Placeholder) {
+                background: var(--zh-reading-card) !important;
+                border-color: var(--zh-reading-line) !important;
+            }
+            html [data-zh-loading-bar="true"],
+            html .Topstory-mainColumn :is(.Skeleton-row, .Skeleton-line, .Placeholder-row) {
+                background: var(--zh-reading-line) !important;
+            }
             /* 外层只负责布局，避免浅色卡片之外残留另一层白底或阴影。 */
             html .Topstory-mainColumn,
             html .Topstory-mainColumnCard,
@@ -1370,6 +1380,22 @@
             overflow-x: auto !important; white-space: nowrap !important;
         }
         html .ContentItem-actions > *, html .RichContent-actions > * { flex-shrink: 0 !important; }
+        /* 站点操作栏的负边距会超出卡片，在两侧形成阶梯状色块。 */
+        html .ContentItem-actions:not(.is-fixed):not(.ContentItem-action),
+        html .RichContent-actions:not(.is-fixed):not(.ContentItem-action) {
+            margin-inline: 0 !important;
+            padding-inline: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        html .ContentItem-actions:not(.ContentItem-action)::before,
+        html .ContentItem-actions:not(.ContentItem-action)::after,
+        html .RichContent-actions::before,
+        html .RichContent-actions::after {
+            display: none !important;
+        }
+
         #zh-reading-collapse {
             position: fixed;
             right: max(var(--zh-collapse-right, 12px), env(safe-area-inset-right));
@@ -1875,6 +1901,37 @@
         });
     }
 
+    function scanLoadingPlaceholders() {
+        // 知乎新版骨架可能只有哈希类名：只识别无正文、无交互控件的重复圆角短条。
+        const contentSelector = 'a, button, input, textarea, img, video, canvas, [role="img"]';
+        document.querySelectorAll('[data-zh-loading-surface], [data-zh-loading-bar]').forEach(element => {
+            if (element.textContent.trim() || element.querySelector(contentSelector)) {
+                element.removeAttribute('data-zh-loading-surface');
+                element.removeAttribute('data-zh-loading-bar');
+            }
+        });
+        if (config.enabled === false || !resolveReadingTheme()?.bg) return;
+        document.querySelectorAll('.Topstory-mainColumn, .Question-mainColumn').forEach(scope => {
+            scope.querySelectorAll('div, section').forEach(element => {
+                if (element.children.length < 3 || element.textContent.trim() || element.querySelector(contentSelector)) return;
+                const bars = Array.from(element.children).filter(child => {
+                    const rect = child.getBoundingClientRect();
+                    if (rect.height < 4 || rect.height > 32 || rect.width < 24) return false;
+                    const style = getComputedStyle(child);
+                    return parseFloat(style.borderRadius) >= 4 && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent';
+                });
+                if (bars.length < 3) return;
+                for (const bar of bars) {
+                    if (bar.getAttribute('data-zh-loading-bar') !== 'true') bar.setAttribute('data-zh-loading-bar', 'true');
+                }
+                for (let surface = element; surface && surface !== scope; surface = surface.parentElement) {
+                    if (surface.textContent.trim() || surface.querySelector(contentSelector)) break;
+                    if (surface.getAttribute('data-zh-loading-surface') !== 'true') surface.setAttribute('data-zh-loading-surface', 'true');
+                }
+            });
+        });
+    }
+
     function syncMainColumnWidth() {
         const columns = document.querySelectorAll('.Question-mainColumn, .Topstory-mainColumn, .SearchMain, .Profile-mainColumn, article.Post-Main, article.Post-NormalMain');
         for (const column of columns) {
@@ -1913,6 +1970,7 @@
             scanMainListsRecovery();                            // 11b. 列表容器保活
             scanRawImages();                                    // 12. 高清原图
             syncMainColumnWidth();
+            scanLoadingPlaceholders();
         } catch (err) {
             console.error('[知乎静阅] 扫描执行异常:', err);
         }
