@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.7
+// @version      2.0.8
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1193,6 +1193,9 @@
                 svg:has(rect):is(:has(clipPath, mask, animate, linearGradient), :has(rect[width="100%"])) {
                 visibility: hidden !important;
             }
+            html [data-zh-reply-placeholder] {
+                visibility: hidden !important;
+            }
             html .Modal-wrapper:has(:is(.Modal, [role="dialog"]) .CommentContent),
             html .Modal:has(.CommentContent) {
                 opacity: 1 !important;
@@ -2084,6 +2087,15 @@
                 if (surface.getAttribute('data-zh-comment-surface') !== 'card') surface.setAttribute('data-zh-comment-surface', 'card');
             };
             if (root.hasAttribute('data-zh-comment-dialog')) {
+                // 加载图也可能只用 path/use 绘制，且没有可识别的类名。
+                root.querySelectorAll('svg, canvas, [role="progressbar"], [aria-busy="true"], [data-zh-reply-placeholder]').forEach(graphic => {
+                    const interactive = graphic.closest('.CommentContent, .CommentItem-content, button, a, [role="button"], [contenteditable], .Editable');
+                    const hasContent = graphic.querySelector('.CommentContent, .CommentItem-content, button, a, input, textarea, [contenteditable]');
+                    const { width, height } = graphic.getBoundingClientRect();
+                    const isPlaceholder = !interactive && !hasContent && !graphic.textContent.trim() &&
+                        width >= Math.max(100, root.clientWidth * 0.35) && height >= 8 && height <= 240;
+                    graphic.toggleAttribute('data-zh-reply-placeholder', isPlaceholder);
+                });
                 Array.from(root.children).forEach(child => {
                     if (!child.matches('div, section, header, footer')) return;
                     if (!child.textContent.trim() && !child.querySelector('img, svg, button, input')) {
@@ -3177,13 +3189,13 @@
         try {
             const target = document.body || document.documentElement;
             if (target) {
-                observer.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class', 'aria-selected', 'aria-pressed'] });
+                observer.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class', 'aria-selected', 'aria-pressed', 'aria-busy'] });
                 scanAndFilterDOM();
                 scheduleHealthCheck();
             } else {
                 document.addEventListener('DOMContentLoaded', () => {
                     if (document.body) {
-                        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class', 'aria-selected', 'aria-pressed'] });
+                        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class', 'aria-selected', 'aria-pressed', 'aria-busy'] });
                     }
                     scanAndFilterDOM();
                     scheduleHealthCheck();
