@@ -2,7 +2,7 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
-知乎静阅是一个为桌面版知乎提供响应式居中布局和柔和阅读配色的用户脚本。
+知乎静阅是一个提供响应式居中、三种阅读配色和便捷收起功能的桌面知乎用户脚本。
 
 ## 功能
 

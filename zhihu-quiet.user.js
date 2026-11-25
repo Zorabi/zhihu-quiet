@@ -2,8 +2,8 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.1
-// @description  dongx 的私人知乎阅读样式：响应式居中、柔和石墨灰、正文关键词去跳转、紧凑顶栏与悬浮收起。
+// @version      2.0.2
+// @description  知乎桌面阅读增强脚本：响应式居中、三种配色、正文关键词去跳转与悬浮收起。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
 // 第三方版权与许可说明：https://github.com/Zorabi/zhihu-quiet/blob/main/THIRD_PARTY_NOTICES.md
@@ -1469,6 +1469,37 @@
         return css;
     }
 
+    function updateDockTheme() {
+        const dock = document.getElementById('zh-side-dock');
+        if (!dock) return;
+        let palette = config.enabled !== false ? resolveReadingTheme() : null;
+        if (!palette?.bg) {
+            // 知乎默认模式不向页面写入配色，只读取当前可见背景用于工具条。
+            let background = null;
+            for (const element of document.querySelectorAll('.AppHeader, .Card, body')) {
+                if (!element.getClientRects().length) continue;
+                const color = getComputedStyle(element).backgroundColor;
+                if (!/^rgba?\(/.test(color)) continue;
+                const channels = color.match(/[\d.]+/g)?.map(Number);
+                if (!channels || channels.length < 3 || channels[3] === 0) continue;
+                background = { color, channels };
+                // 优先使用顶栏或内容卡片，body 仅作为回退。
+                if (element !== document.body) break;
+            }
+            const dark = background ? background.channels.slice(0, 3).reduce((a, b) => a + b, 0) / 3 < 128 : systemColorScheme.matches;
+            palette = {
+                card: background?.color || (dark ? '#27292c' : '#edf0f3'),
+                muted: dark ? '#949ba4' : '#727b86',
+                line: dark ? '#35393e' : '#dfe5eb'
+            };
+        }
+        for (const [name, value] of Object.entries({
+            '--zh-tool-bg': palette.card, '--zh-tool-fg': palette.muted, '--zh-tool-hover': palette.line
+        })) {
+            if (dock.style.getPropertyValue(name) !== value) dock.style.setProperty(name, value);
+        }
+    }
+
     function applyAllStyles() {
         const css = generateCSS();
         try {
@@ -1478,6 +1509,7 @@
                 } else {
                     injectedStyleNode.textContent = css;
                 }
+                updateDockTheme();
                 return;
             }
         } catch (e) {}
@@ -1491,12 +1523,14 @@
             }
             el.textContent = css;
         } catch (e) {}
+        updateDockTheme();
     }
 
     // 初始尽早注入样式；仅在跟随系统模式下响应系统外观变化。
     applyAllStyles();
     systemColorScheme.addEventListener('change', () => {
         if (config.readingTheme === 'system') applyAllStyles();
+        else updateDockTheme();
     });
 
     // 总开关停用时仍完整恢复网站原生布局。
@@ -2998,8 +3032,8 @@
             bottom: max(124px, calc(env(safe-area-inset-bottom) + 108px)) !important;
             width: 30px !important;
             display: flex !important; flex-direction: column !important; align-items: center !important;
-            background: var(--zh-reading-card, #edf0f3) !important;
-            color: var(--zh-reading-muted, #727b86) !important;
+            background: var(--zh-tool-bg, #edf0f3) !important;
+            color: var(--zh-tool-fg, #727b86) !important;
             border: 0 !important; border-radius: 9px !important;
             box-shadow: none !important; z-index: 99998 !important;
             opacity: .65; transition: opacity .16s ease;
@@ -3017,7 +3051,7 @@
             stroke-linecap: round; stroke-linejoin: round;
         }
         .zh-dock-btn:focus { outline: none; box-shadow: none; }
-        .zh-dock-btn:hover, .zh-dock-btn:focus-visible { background: var(--zh-reading-line, #dfe5eb) !important; }
+        .zh-dock-btn:hover, .zh-dock-btn:focus-visible { background: var(--zh-tool-hover, #dfe5eb) !important; }
         .zh-dock-btn:active { opacity: .65; }
         .zh-dock-divider { width: 14px; height: 1px; background: currentColor; opacity: .18; }
         #${BACK_TO_TOP_BTN_ID}, #${BACK_TO_TOP_BTN_ID}-divider { display: none !important; }
@@ -3367,6 +3401,13 @@
         }
 
         updateBackToTopVisibility();
+        updateDockTheme();
+        const siteThemeObserver = new MutationObserver(() => {
+            if (config.readingTheme === 'original' || config.enabled === false) updateDockTheme();
+        });
+        for (const element of [document.documentElement, document.body]) {
+            if (element) siteThemeObserver.observe(element, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
+        }
 
         // 交互逻辑
         let previousFocus = null;
