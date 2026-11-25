@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.4
+// @version      2.0.5
 // @description  知乎桌面阅读优化脚本：响应式布局、系统／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -47,6 +47,8 @@
     const PERSONAL_LAYOUT = Object.freeze({ avatarAtStart: true, hideSidebar: true });
 
     const CONFIG_KEY = 'zhihu_simplify_config';
+    const COMMENT_SCOPE_SELECTOR = '.Comments-container, .CommentsV2, [data-zh-comment-dialog]';
+    const COMMENT_DIALOG_SELECTOR = '.Modal, .Modal-content, .Modal-inner, [role="dialog"], [aria-modal="true"], .Drawer-content';
 
     // 安全获取类名字符串（兼容 SVG 等非标准 className 对象）
     function getSafeClassName(el) {
@@ -1171,36 +1173,46 @@
                 border-bottom-color: var(--zh-reading-line) !important;
             }
             /* 评论区独立渲染，正文主题不会自动覆盖其内容、排序与编辑器。 */
-            html :is(.Comments-container, .CommentsV2) {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) {
                 background: var(--zh-reading-card) !important;
                 color: var(--zh-reading-text) !important;
                 border-color: var(--zh-reading-line) !important;
+                box-shadow: none !important;
             }
-            html :is(.Comments-container, .CommentsV2) :is(div, section, span, button, input, textarea) {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(div, section, span, button, input, textarea) {
                 border-color: var(--zh-reading-line) !important;
             }
-            html :is(.Comments-container, .CommentsV2) :is(.CommentContent, .CommentItem-content, [data-zh-comment-heading]),
-            html :is(.Comments-container, .CommentsV2) a[href*="/people/"] {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.CommentContent, .CommentItem-content, [data-zh-comment-heading]),
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) a[href*="/people/"] {
                 color: var(--zh-reading-text) !important;
             }
-            html :is(.Comments-container, .CommentsV2) :is(.CommentContent, .CommentItem-content) :is(span, p, strong, b, em, i) {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.CommentContent, .CommentItem-content) :is(span, p, strong, b, em, i) {
                 color: inherit !important;
             }
-            html :is(.Comments-container, .CommentsV2) :is(.CommentContent, .CommentItem-content) a {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.CommentContent, .CommentItem-content) a {
                 color: var(--zh-reading-accent) !important;
+            }
+            html [data-zh-comment-surface="card"] {
+                background: var(--zh-reading-card) !important;
+                border-color: var(--zh-reading-line) !important;
+                box-shadow: none !important;
+            }
+            html [data-zh-comment-surface="separator"] {
+                background: var(--zh-reading-bg) !important;
+                border-color: var(--zh-reading-line) !important;
             }
             html [data-zh-comment-meta] { color: var(--zh-reading-muted) !important; }
-            html :is(.Comments-container, .CommentsV2) button {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) button {
                 color: var(--zh-reading-muted) !important;
             }
-            html :is(.Comments-container, .CommentsV2) :is(div, section) { box-shadow: none !important; }
-            html :is(.Comments-container, .CommentsV2) button.Button--grey {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(div, section) { box-shadow: none !important; }
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) button.Button--grey {
                 background: var(--zh-reading-bg) !important;
             }
-            html :is(.Comments-container, .CommentsV2) :is(button.Button--blue, button.is-active, button[aria-pressed="true"]) {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(button.Button--blue, button.is-active, button[aria-pressed="true"]) {
                 color: var(--zh-reading-accent) !important;
             }
-            html :is(.Comments-container, .CommentsV2) button.Button--primary {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) button.Button--primary {
                 background: var(--zh-reading-line) !important;
                 color: var(--zh-reading-text) !important;
             }
@@ -1243,14 +1255,14 @@
                 box-shadow: none !important;
                 border-color: var(--zh-reading-line) !important;
             }
-            html :is(.Comments-container, .CommentsV2) :is(.InputLike, .Input-wrapper, textarea, .Editable-content, .public-DraftEditor-content) {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.InputLike, .Input-wrapper, textarea, .Editable-content, .public-DraftEditor-content) {
                 background: var(--zh-reading-bg) !important;
                 color: var(--zh-reading-text) !important;
                 border-color: var(--zh-reading-line) !important;
                 caret-color: var(--zh-reading-text) !important;
             }
-            html :is(.Comments-container, .CommentsV2) .public-DraftEditor-content * { color: inherit !important; }
-            html :is(.Comments-container, .CommentsV2) :is(.public-DraftEditorPlaceholder-inner, .public-DraftEditorPlaceholder-root) {
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) .public-DraftEditor-content * { color: inherit !important; }
+            html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) :is(.public-DraftEditorPlaceholder-inner, .public-DraftEditorPlaceholder-root) {
                 color: var(--zh-reading-muted) !important;
             }
             /* 加载占位与已加载卡片使用相同主题，覆盖站点仍处于暗色的骨架。 */
@@ -2013,15 +2025,59 @@
     const commentSortState = new WeakMap();
     function scanCommentsTheme() {
         if (config.enabled === false || !resolveReadingTheme()?.bg) return;
-        document.querySelectorAll('.Comments-container, .CommentsV2').forEach(root => {
+        // 完整回复通过 portal 挂在正文外，不能只查行内评论容器。
+        const dialogs = new Set(document.querySelectorAll(COMMENT_DIALOG_SELECTOR));
+        document.querySelectorAll('.CommentContent, .CommentItem-content').forEach(content => {
+            if (content.closest('.Comments-container, .CommentsV2')) return;
+            let root = null;
+            for (let parent = content.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+                if (parent.matches(COMMENT_DIALOG_SELECTOR)) root = parent;
+            }
+            if (!root && !content.closest('.App-main')) {
+                root = content;
+                while (root.parentElement && root.parentElement !== document.body) root = root.parentElement;
+                if (root.querySelector('.AppHeader, main')) root = null;
+            }
+            if (root) dialogs.add(root);
+        });
+        dialogs.forEach(dialog => {
+            const isCommentDialog = dialog.querySelector('.CommentContent, .CommentItem-content') || dialog.textContent.trim().startsWith('评论回复');
+            if (isCommentDialog && !dialog.hasAttribute('data-zh-comment-dialog')) dialog.setAttribute('data-zh-comment-dialog', 'true');
+        });
+        document.querySelectorAll(COMMENT_SCOPE_SELECTOR).forEach(root => {
+            const markSurface = surface => {
+                if (!surface) return;
+                const children = Array.from(surface.children);
+                if (children.length === 2 && children.every(child => /^(默认|最新)$/.test(child.textContent.trim()))) {
+                    surface.removeAttribute('data-zh-comment-surface');
+                    return;
+                }
+                if (surface.getAttribute('data-zh-comment-surface') !== 'card') surface.setAttribute('data-zh-comment-surface', 'card');
+            };
+            if (root.hasAttribute('data-zh-comment-dialog')) {
+                Array.from(root.children).forEach(child => {
+                    if (!child.matches('div, section, header, footer')) return;
+                    if (!child.textContent.trim() && !child.querySelector('img, svg, button, input')) {
+                        if (child.getAttribute('data-zh-comment-surface') !== 'separator') child.setAttribute('data-zh-comment-surface', 'separator');
+                    } else markSurface(child);
+                });
+            }
             root.querySelectorAll('.CommentContent, .CommentItem-content').forEach(content => {
+                for (let surface = content.parentElement; surface && surface !== root; surface = surface.parentElement) {
+                    const background = getComputedStyle(surface).backgroundColor;
+                    if (background !== 'transparent' && background !== 'rgba(0, 0, 0, 0)') markSurface(surface);
+                }
                 const meta = content.nextElementSibling;
                 if (meta && !meta.hasAttribute('data-zh-comment-meta')) meta.setAttribute('data-zh-comment-meta', 'true');
             });
             root.querySelectorAll('div, span, button').forEach(element => {
                 if (element.closest('.CommentContent, .CommentItem-content, .Editable')) return;
-                if (element.children.length === 0 && /^\d+\s*条评论$/.test(element.textContent.trim())) {
+                if (element.children.length === 0 && /^(?:\d+\s*条(?:评论|回复)|评论回复)$/.test(element.textContent.trim())) {
                     if (!element.hasAttribute('data-zh-comment-heading')) element.setAttribute('data-zh-comment-heading', 'true');
+                    for (let surface = element.parentElement; surface && surface !== root; surface = surface.parentElement) {
+                        const background = getComputedStyle(surface).backgroundColor;
+                        if (background !== 'transparent' && background !== 'rgba(0, 0, 0, 0)') markSurface(surface);
+                    }
                 }
                 const options = Array.from(element.children);
                 if (options.length !== 2 || !options.every(option => /^(默认|最新)$/.test(option.textContent.trim()))) return;
@@ -3060,7 +3116,7 @@
     let mutationTimer = null;
     const isSelfMutation = (m) => {
         if (m.type === 'attributes') {
-            return m.attributeName !== 'placeholder' && !(m.attributeName === 'class' && m.target.closest?.('.Comments-container, .CommentsV2'));
+            return m.attributeName !== 'placeholder' && !(['class', 'aria-selected', 'aria-pressed'].includes(m.attributeName) && m.target.closest?.(COMMENT_SCOPE_SELECTOR));
         }
         // childList：全部新增节点都是脚本自身创建的 UI 时视为自触发
         const added = m.addedNodes;
@@ -3068,6 +3124,14 @@
         return Array.from(added).every(n => n.nodeType !== 1 || /^zh-/.test(n.id || '') || (n.classList && (n.classList.contains('zh-card-close-btn') || n.classList.contains('zh-b-mask'))));
     };
     const observer = new MutationObserver((records) => {
+        const commentChanged = records.some(record => {
+            const target = record.target.nodeType === 1 ? record.target : record.target.parentElement;
+            if (target?.closest?.(COMMENT_SCOPE_SELECTOR + ', ' + COMMENT_DIALOG_SELECTOR)) return true;
+            return Array.from(record.addedNodes || []).some(node => node.nodeType === 1 &&
+                (node.matches(COMMENT_SCOPE_SELECTOR + ', ' + COMMENT_DIALOG_SELECTOR + ', .CommentContent, .CommentItem-content') ||
+                 node.querySelector(COMMENT_SCOPE_SELECTOR + ', ' + COMMENT_DIALOG_SELECTOR + ', .CommentContent, .CommentItem-content')));
+        });
+        if (commentChanged) scanCommentsTheme();
         if (mutationTimer) return;
         let meaningful = false;
         for (let i = 0; i < records.length; i++) {
@@ -3084,13 +3148,13 @@
         try {
             const target = document.body || document.documentElement;
             if (target) {
-                observer.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class'] });
+                observer.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class', 'aria-selected', 'aria-pressed'] });
                 scanAndFilterDOM();
                 scheduleHealthCheck();
             } else {
                 document.addEventListener('DOMContentLoaded', () => {
                     if (document.body) {
-                        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class'] });
+                        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class', 'aria-selected', 'aria-pressed'] });
                     }
                     scanAndFilterDOM();
                     scheduleHealthCheck();
