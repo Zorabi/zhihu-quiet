@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.0
+// @version      2.0.1
 // @description  dongx 的私人知乎阅读样式：响应式居中、柔和石墨灰、正文关键词去跳转、紧凑顶栏与悬浮收起。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -260,7 +260,6 @@
             border-radius: 8px !important;
             margin-top: 18px !important;
             margin-bottom: 28px !important;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
             transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
         }
 
@@ -838,7 +837,6 @@
                 max-width: 100vw !important;
                 box-sizing: border-box !important;
                 z-index: 99 !important;
-                box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
                 /* 禁止对定位类属性做过渡，杜绝知乎重算 left/width 时的滑动感 */
                 transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
             }
@@ -1006,7 +1004,6 @@
         html.zh-question-layout .QuestionPage .NumberBoard-itemName,
         html.zh-question-layout .QuestionPage .NumberBoard-itemValue {
             font-size: 12px !important; line-height: 20px !important; font-weight: 400 !important;
-            color: var(--zh-reading-muted, #8590a6) !important;
         }
         html.zh-question-layout .QuestionPage .QuestionFollowStatus-counts .NumberBoard-item::after,
         html.zh-question-layout .QuestionPage .QuestionFollowStatus-counts .NumberBoard-item::before { display: none !important; }
@@ -1016,10 +1013,7 @@
         html.zh-question-layout .QuestionPage .QuestionTopic {
             margin: 0 !important; padding: 3px 8px !important;
             font-size: 12px !important; line-height: 20px !important;
-            background: var(--zh-reading-line, #eef3f8) !important;
-            color: var(--zh-reading-muted, #687b91) !important;
         }
-        html.zh-question-layout .QuestionPage .QuestionTopic a { color: inherit !important; }
         html.zh-question-layout .QuestionPage .QuestionHeader-title {
             margin-block: 10px 6px !important;
             font-size: clamp(20px, 2.5vw, 24px) !important;
@@ -1047,7 +1041,6 @@
             font-size: 13px !important; line-height: 20px !important;
             white-space: nowrap !important; border: 0 !important; border-radius: 6px !important;
             box-sizing: border-box !important;
-            color: var(--zh-reading-muted, #8590a6) !important;
         }
         html.zh-question-layout .QuestionPage .QuestionHeader-footer-inner button span {
             flex-shrink: 0 !important; line-height: 0;
@@ -1177,6 +1170,39 @@
             html .TopstoryItem, html .TopstoryItem .Card {
                 border-bottom-color: var(--zh-reading-line) !important;
             }
+            /* 外层只负责布局，避免浅色卡片之外残留另一层白底或阴影。 */
+            html .Topstory-mainColumn,
+            html .Topstory-mainColumnCard,
+            html .Topstory-content,
+            html .Topstory-recommend {
+                background: transparent !important;
+                box-shadow: none !important;
+                border: 0 !important;
+            }
+            html .TopstoryItem, html .TopstoryItem > .Card {
+                border-left: 0 !important;
+                border-right: 0 !important;
+                box-shadow: none !important;
+            }
+            html .ContentItem-actions.is-fixed,
+            html .RichContent-actions.is-fixed {
+                background: var(--zh-reading-card) !important;
+                border-left: 0 !important;
+                border-right: 0 !important;
+                box-shadow: none !important;
+            }
+            html.zh-question-layout .QuestionPage .QuestionTopic {
+                background: var(--zh-reading-line) !important;
+                color: var(--zh-reading-muted) !important;
+            }
+            html.zh-question-layout .QuestionPage .QuestionTopic a { color: inherit !important; }
+            html.zh-question-layout .QuestionPage .NumberBoard-itemName,
+            html.zh-question-layout .QuestionPage .NumberBoard-itemValue,
+            html.zh-question-layout .QuestionPage .QuestionHeader-footer-inner button,
+            html .AppHeader .SearchBar-searchButton,
+            html .AppHeader [data-zh-header-action] {
+                color: var(--zh-reading-muted) !important;
+            }
             html .RichText blockquote, html .RichText pre,
             html .Input-wrapper, html .SearchBar-input {
                 background: var(--zh-reading-bg) !important;
@@ -1283,7 +1309,6 @@
             position: static !important; transform: none !important;
             flex: 0 0 24px !important; width: 24px !important; height: 28px !important;
             padding: 0 !important; margin: 0 !important;
-            color: var(--zh-reading-muted, #8590a6) !important;
             background: transparent !important; border: 0 !important;
         }
         html body .AppHeader .zh-moved-avatar,
@@ -1305,7 +1330,6 @@
             inset: auto !important; transform: none !important;
             min-width: 28px !important; max-width: 28px !important;
             box-sizing: border-box !important;
-            color: var(--zh-reading-muted, #8590a6) !important;
             background: transparent !important; overflow: visible !important;
         }
         html body .AppHeader [data-zh-header-action],
@@ -1817,6 +1841,19 @@
         });
     }
 
+    function syncMainColumnWidth() {
+        const columns = document.querySelectorAll('.Question-mainColumn, .Topstory-mainColumn, .SearchMain, .Profile-mainColumn, article.Post-Main, article.Post-NormalMain');
+        for (const column of columns) {
+            const width = Math.round(column.getBoundingClientRect().width);
+            if (width <= 0 || !column.getClientRects().length) continue;
+            const value = `${width}px`;
+            if (document.documentElement.style.getPropertyValue('--zh-main-col-width') !== value) {
+                document.documentElement.style.setProperty('--zh-main-col-width', value);
+            }
+            break;
+        }
+    }
+
     function scanAndFilterDOM() {
         try {
             scanEntityWordLinks();
@@ -1841,6 +1878,7 @@
             scanAds();                                          // 11. 推广卡片
             scanMainListsRecovery();                            // 11b. 列表容器保活
             scanRawImages();                                    // 12. 高清原图
+            syncMainColumnWidth();
         } catch (err) {
             console.error('[知乎静阅] 扫描执行异常:', err);
         }
