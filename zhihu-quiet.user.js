@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.8
+// @version      2.0.9
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1113,6 +1113,8 @@
 
         const theme = resolveReadingTheme();
         if (theme && theme.bg) {
+            const profileCard = `:is(.HoverCard, .HoverCard-content, .HoverCardContainer, .UserCard, .MemberCard,
+                .Popover-content:has(a[href*="/people/"]):has(.FollowButton))`;
             css += `
             :root {
                 color-scheme: ${theme.dark ? 'dark' : 'light'};
@@ -1201,6 +1203,36 @@
                 opacity: 1 !important;
                 animation: none !important;
                 transition: none !important;
+            }
+            /* 用户名片可能通过 Portal 渲染在评论区外。 */
+            html body ${profileCard} {
+                background: var(--zh-reading-card) !important;
+                color: var(--zh-reading-text) !important;
+                border-color: var(--zh-reading-line) !important;
+            }
+            html body ${profileCard}
+                :is(a, strong, .NumberBoard-itemValue, .UserLink-link, .UserCard-name) {
+                color: var(--zh-reading-text) !important;
+            }
+            html body ${profileCard}
+                :is(div, span, hr, img, .Popover-arrow)::before,
+            html body ${profileCard}
+                :is(div, span, hr, img) {
+                border-color: var(--zh-reading-line) !important;
+            }
+            html body ${profileCard}
+                :is(.NumberBoard-itemName, .UserCard-headline, .HoverCard-titleDescription, .UserHeadline) {
+                color: var(--zh-reading-muted) !important;
+            }
+            html body ${profileCard} button {
+                background: var(--zh-reading-bg) !important;
+                color: var(--zh-reading-text) !important;
+                border-color: var(--zh-reading-line) !important;
+            }
+            html body ${profileCard}
+                button:is(.Button--primary, .Button--blue, :hover, :focus-visible):not(:disabled) {
+                background: var(--zh-reading-line) !important;
+                color: var(--zh-reading-text) !important;
             }
             /* 评论区独立渲染，正文主题不会自动覆盖其内容、排序与编辑器。 */
             html :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) {
@@ -1560,8 +1592,8 @@
             padding: 9px 14px;
             border: 0;
             border-radius: 6px;
-            background: var(--zh-reading-card, #e8edf3);
-            color: var(--zh-reading-text, #364152);
+            background: var(--zh-reading-card, var(--zh-native-collapse-bg, #e8edf3));
+            color: var(--zh-reading-text, var(--zh-native-collapse-fg, #364152));
             font: 14px/1.5 system-ui, sans-serif;
             cursor: pointer;
             box-shadow: none;
@@ -1601,7 +1633,7 @@
         html body #zh-reading-collapse[hidden] { display: none !important; }
         html [data-zh-comment-proxy-host="true"] { display: none !important; }
         #zh-reading-collapse:hover, #zh-reading-collapse:focus-visible {
-            background: var(--zh-reading-line, #d5dfeb);
+            background: var(--zh-reading-line, var(--zh-native-collapse-hover, #d5dfeb));
         }
         #zh-reading-collapse:focus { outline: none; box-shadow: none; }
         #zh-reading-collapse:active { opacity: .75; }
@@ -1656,7 +1688,7 @@
         if (!dock) return;
         let palette = config.enabled !== false ? resolveReadingTheme() : null;
         if (!palette?.bg) {
-            // 知乎默认模式不向页面写入配色，只读取当前可见背景用于工具条。
+            // 知乎默认模式不向页面写入配色，读取当前可见背景，用于脚本工具条和悬浮收起按钮。
             let background = null;
             for (const element of document.querySelectorAll('.AppHeader, .Card, body')) {
                 if (!element.getClientRects().length) continue;
@@ -1669,6 +1701,14 @@
                 if (element !== document.body) break;
             }
             const dark = background ? background.channels.slice(0, 3).reduce((a, b) => a + b, 0) / 3 < 128 : systemColorScheme.matches;
+            const rootStyle = document.documentElement.style;
+            for (const [name, value] of Object.entries({
+                '--zh-native-collapse-bg': dark ? '#35393e' : '#e8edf3',
+                '--zh-native-collapse-fg': dark ? '#d0d5db' : '#364152',
+                '--zh-native-collapse-hover': dark ? '#41464d' : '#d5dfeb'
+            })) {
+                if (rootStyle.getPropertyValue(name) !== value) rootStyle.setProperty(name, value);
+            }
             palette = {
                 card: background?.color || (dark ? '#27292c' : '#edf0f3'),
                 muted: dark ? '#949ba4' : '#727b86',
