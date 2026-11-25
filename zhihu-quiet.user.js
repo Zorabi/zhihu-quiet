@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.3
+// @version      2.0.4
 // @description  知乎桌面阅读增强脚本：响应式居中、三种配色、正文关键词去跳转与悬浮收起。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1170,6 +1170,89 @@
             html .TopstoryItem, html .TopstoryItem .Card {
                 border-bottom-color: var(--zh-reading-line) !important;
             }
+            /* 评论区独立渲染，正文主题不会自动覆盖其内容、排序与编辑器。 */
+            html :is(.Comments-container, .CommentsV2) {
+                background: var(--zh-reading-card) !important;
+                color: var(--zh-reading-text) !important;
+                border-color: var(--zh-reading-line) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) :is(div, section, span, button, input, textarea) {
+                border-color: var(--zh-reading-line) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) :is(.CommentContent, .CommentItem-content, [data-zh-comment-heading]),
+            html :is(.Comments-container, .CommentsV2) a[href*="/people/"] {
+                color: var(--zh-reading-text) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) :is(.CommentContent, .CommentItem-content) :is(span, p, strong, b, em, i) {
+                color: inherit !important;
+            }
+            html :is(.Comments-container, .CommentsV2) :is(.CommentContent, .CommentItem-content) a {
+                color: var(--zh-reading-accent) !important;
+            }
+            html [data-zh-comment-meta] { color: var(--zh-reading-muted) !important; }
+            html :is(.Comments-container, .CommentsV2) button {
+                color: var(--zh-reading-muted) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) :is(div, section) { box-shadow: none !important; }
+            html :is(.Comments-container, .CommentsV2) button.Button--grey {
+                background: var(--zh-reading-bg) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) :is(button.Button--blue, button.is-active, button[aria-pressed="true"]) {
+                color: var(--zh-reading-accent) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) button.Button--primary {
+                background: var(--zh-reading-line) !important;
+                color: var(--zh-reading-text) !important;
+            }
+            html [data-zh-comment-floating-surface] {
+                background: transparent !important;
+                border: 0 !important;
+                box-shadow: none !important;
+            }
+            html #zh-reading-collapse,
+            html [data-zh-comment-floating="true"] {
+                background: var(--zh-reading-line) !important;
+                color: var(--zh-reading-text) !important;
+                border: 0 !important;
+                box-shadow: none !important;
+            }
+            html #zh-reading-collapse:hover,
+            html [data-zh-comment-floating="true"]:hover {
+                background: var(--zh-reading-bg) !important;
+            }
+            html [data-zh-comment-sort] {
+                background: var(--zh-reading-bg) !important;
+                border-color: var(--zh-reading-line) !important;
+            }
+            html [data-zh-comment-sort-option] {
+                background: transparent !important;
+                color: var(--zh-reading-muted) !important;
+            }
+            html [data-zh-comment-sort-option="selected"] {
+                background: var(--zh-reading-line) !important;
+                color: var(--zh-reading-text) !important;
+            }
+            html [data-zh-comment-editor-surface] {
+                background: var(--zh-reading-card) !important;
+                border-color: var(--zh-reading-line) !important;
+                box-shadow: none !important;
+            }
+            html [data-zh-comment-editor-surface]::before,
+            html [data-zh-comment-editor-surface]::after {
+                background: none !important;
+                box-shadow: none !important;
+                border-color: var(--zh-reading-line) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) :is(.InputLike, .Input-wrapper, textarea, .Editable-content, .public-DraftEditor-content) {
+                background: var(--zh-reading-bg) !important;
+                color: var(--zh-reading-text) !important;
+                border-color: var(--zh-reading-line) !important;
+                caret-color: var(--zh-reading-text) !important;
+            }
+            html :is(.Comments-container, .CommentsV2) .public-DraftEditor-content * { color: inherit !important; }
+            html :is(.Comments-container, .CommentsV2) :is(.public-DraftEditorPlaceholder-inner, .public-DraftEditorPlaceholder-root) {
+                color: var(--zh-reading-muted) !important;
+            }
             /* 加载占位与已加载卡片使用相同主题，覆盖站点仍处于暗色的骨架。 */
             html [data-zh-loading-surface="true"],
             html .Topstory-mainColumn :is(.Skeleton, .SkeletonLoading, .LoadingSkeleton, .Placeholder) {
@@ -1469,6 +1552,7 @@
             transform: none !important;
         }
         html body #zh-reading-collapse[hidden] { display: none !important; }
+        html [data-zh-comment-proxy-host="true"] { display: none !important; }
         #zh-reading-collapse:hover, #zh-reading-collapse:focus-visible {
             background: var(--zh-reading-line, #d5dfeb);
         }
@@ -1926,6 +2010,49 @@
         });
     }
 
+    const commentSortState = new WeakMap();
+    function scanCommentsTheme() {
+        if (config.enabled === false || !resolveReadingTheme()?.bg) return;
+        document.querySelectorAll('.Comments-container, .CommentsV2').forEach(root => {
+            root.querySelectorAll('.CommentContent, .CommentItem-content').forEach(content => {
+                const meta = content.nextElementSibling;
+                if (meta && !meta.hasAttribute('data-zh-comment-meta')) meta.setAttribute('data-zh-comment-meta', 'true');
+            });
+            root.querySelectorAll('div, span, button').forEach(element => {
+                if (element.closest('.CommentContent, .CommentItem-content, .Editable')) return;
+                if (element.children.length === 0 && /^\d+\s*条评论$/.test(element.textContent.trim())) {
+                    if (!element.hasAttribute('data-zh-comment-heading')) element.setAttribute('data-zh-comment-heading', 'true');
+                }
+                const options = Array.from(element.children);
+                if (options.length !== 2 || !options.every(option => /^(默认|最新)$/.test(option.textContent.trim()))) return;
+                const signature = options.map(option => ['class', 'style', 'aria-selected', 'aria-pressed'].map(name => option.getAttribute(name) || '').join('|')).join(';');
+                if (commentSortState.get(element) === signature && options.every(option => option.hasAttribute('data-zh-comment-sort-option'))) return;
+                // 暂时去掉我们自己的色值，读取站点的选中态；不写入站点 class 或处理点击事件。
+                element.removeAttribute('data-zh-comment-sort');
+                options.forEach(option => option.removeAttribute('data-zh-comment-sort-option'));
+                const rgb = color => (color.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+                const background = rgb(getComputedStyle(element).backgroundColor);
+                let selected = 0;
+                let bestContrast = -1;
+                options.forEach((option, index) => {
+                    const explicit = option.getAttribute('aria-selected') === 'true' || option.getAttribute('aria-pressed') === 'true';
+                    const color = rgb(getComputedStyle(option).color);
+                    const contrast = explicit ? Infinity : color.reduce((sum, value, channel) => sum + Math.abs(value - (background[channel] || 0)), 0);
+                    if (contrast > bestContrast) { bestContrast = contrast; selected = index; }
+                });
+                element.setAttribute('data-zh-comment-sort', 'true');
+                options.forEach((option, index) => option.setAttribute('data-zh-comment-sort-option', index === selected ? 'selected' : 'normal'));
+                commentSortState.set(element, signature);
+            });
+            root.querySelectorAll('[contenteditable="true"], textarea').forEach(editor => {
+                for (let element = editor.parentElement; element && element !== root; element = element.parentElement) {
+                    if (element.querySelector('.CommentContent, .CommentItem-content')) break;
+                    if (!element.hasAttribute('data-zh-comment-editor-surface')) element.setAttribute('data-zh-comment-editor-surface', 'true');
+                }
+            });
+        });
+    }
+
     function scanLoadingPlaceholders() {
         // 知乎新版骨架可能只有哈希类名：只识别无正文、无交互控件的重复圆角短条。
         const contentSelector = 'a, button, input, textarea, img, video, canvas, [role="img"]';
@@ -1996,6 +2123,7 @@
             scanRawImages();                                    // 12. 高清原图
             syncMainColumnWidth();
             scanLoadingPlaceholders();
+            scanCommentsTheme();
         } catch (err) {
             console.error('[知乎静阅] 扫描执行异常:', err);
         }
@@ -2932,7 +3060,7 @@
     let mutationTimer = null;
     const isSelfMutation = (m) => {
         if (m.type === 'attributes') {
-            return m.attributeName !== 'placeholder';
+            return m.attributeName !== 'placeholder' && !(m.attributeName === 'class' && m.target.closest?.('.Comments-container, .CommentsV2'));
         }
         // childList：全部新增节点都是脚本自身创建的 UI 时视为自触发
         const added = m.addedNodes;
@@ -2956,13 +3084,13 @@
         try {
             const target = document.body || document.documentElement;
             if (target) {
-                observer.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder'] });
+                observer.observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class'] });
                 scanAndFilterDOM();
                 scheduleHealthCheck();
             } else {
                 document.addEventListener('DOMContentLoaded', () => {
                     if (document.body) {
-                        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder'] });
+                        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder', 'class'] });
                     }
                     scanAndFilterDOM();
                     scheduleHealthCheck();
@@ -3016,10 +3144,16 @@
                 control.removeAttribute?.('data-zh-comment-collapse');
                 const isAction = control.closest('.ContentItem-actions, .RichContent-actions') || control.classList?.contains('ContentItem-action');
                 const isFloating = !isAction && Boolean(control.querySelector?.('svg[class*="ArrowUp"]'));
-                if (isFloating) control.setAttribute?.('data-zh-comment-floating', 'true');
-                else control.removeAttribute?.('data-zh-comment-floating');
+                if (isFloating) {
+                    control.setAttribute('data-zh-comment-floating', 'true');
+                    for (let surface = control.parentElement; surface && surface !== document.body; surface = surface.parentElement) {
+                        if (surface.querySelectorAll('button, a, input, textarea, [contenteditable]').length !== 1 || surface.textContent.trim() !== control.textContent.trim()) break;
+                        if (!surface.hasAttribute('data-zh-comment-floating-surface')) surface.setAttribute('data-zh-comment-floating-surface', 'true');
+                    }
+                } else control.removeAttribute('data-zh-comment-floating');
                 const style = getComputedStyle(control);
-                if (style.display === 'none' || style.visibility === 'hidden' || !control.getClientRects().length) continue;
+                const hiddenByProxy = control.closest('[data-zh-comment-proxy-host]');
+                if (!hiddenByProxy && (style.display === 'none' || style.visibility === 'hidden' || !control.getClientRects().length)) continue;
                 const item = control.closest('.ContentItem') || control.closest('.AnswerItem');
                 if (!item) continue;
                 const rect = item.getBoundingClientRect();
@@ -3035,6 +3169,25 @@
                 }
             }
         }
+        // 我们已有就近收起入口时，隐藏站点那一套悬浮框及其单按钮包装层。
+        const nativeHosts = new Set();
+        if (target && collapseLabel === '收起评论 ↑') {
+            const item = target.closest('.ContentItem, .AnswerItem');
+            item?.querySelectorAll('[data-zh-comment-floating="true"]').forEach(control => {
+                let host = control;
+                for (let parent = control.parentElement; parent && parent !== item; parent = parent.parentElement) {
+                    if (parent.querySelectorAll('button, a, input, textarea, [contenteditable]').length !== 1 || parent.textContent.trim() !== control.textContent.trim()) break;
+                    host = parent;
+                }
+                nativeHosts.add(host);
+            });
+        }
+        document.querySelectorAll('[data-zh-comment-proxy-host]').forEach(host => {
+            if (!nativeHosts.has(host)) host.removeAttribute('data-zh-comment-proxy-host');
+        });
+        nativeHosts.forEach(host => {
+            if (!host.hasAttribute('data-zh-comment-proxy-host')) host.setAttribute('data-zh-comment-proxy-host', 'true');
+        });
         readingCollapseTarget = target;
         if (!readingCollapseButton && target) {
             readingCollapseButton = document.createElement('button');
