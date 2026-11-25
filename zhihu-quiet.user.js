@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.2
+// @version      2.0.3
 // @description  知乎桌面阅读增强脚本：响应式居中、三种配色、正文关键词去跳转与悬浮收起。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1179,6 +1179,31 @@
             html [data-zh-loading-bar="true"],
             html .Topstory-mainColumn :is(.Skeleton-row, .Skeleton-line, .Placeholder-row) {
                 background: var(--zh-reading-line) !important;
+                box-shadow: none !important;
+                filter: none !important;
+                animation: zh-quiet-loading-pulse 1.8s ease-in-out infinite !important;
+            }
+            /* 深色扫光可能位于伪元素或子层，单改底色无法覆盖它。 */
+            html :is([data-zh-loading-bar="true"], .Topstory-mainColumn .Skeleton-row, .Topstory-mainColumn .Skeleton-line, .Topstory-mainColumn .Placeholder-row)::before,
+            html :is([data-zh-loading-bar="true"], .Topstory-mainColumn .Skeleton-row, .Topstory-mainColumn .Skeleton-line, .Topstory-mainColumn .Placeholder-row)::after {
+                content: none !important;
+                display: none !important;
+                background: none !important;
+                box-shadow: none !important;
+                animation: none !important;
+            }
+            html [data-zh-loading-bar="true"] > * {
+                visibility: hidden !important;
+            }
+            @keyframes zh-quiet-loading-pulse {
+                0%, 100% { opacity: .65; }
+                50% { opacity: .95; }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                html [data-zh-loading-bar="true"],
+                html .Topstory-mainColumn :is(.Skeleton-row, .Skeleton-line, .Placeholder-row) {
+                    animation: none !important;
+                }
             }
             /* 外层只负责布局，避免浅色卡片之外残留另一层白底或阴影。 */
             html .Topstory-mainColumn,
