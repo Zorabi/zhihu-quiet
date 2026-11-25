@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.9
+// @version      2.0.10
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -47,6 +47,8 @@
     const PERSONAL_LAYOUT = Object.freeze({ avatarAtStart: true, hideSidebar: true });
 
     const CONFIG_KEY = 'zhihu_simplify_config';
+    // 评论名片的外层可能只有哈希类名，取包含头像、操作与三项统计的最内层容器。
+    const PROFILE_CARD_STRUCTURE = 'div:has(img):has(button):has(a[href*="/people/"][href$="/answers"]):has(a[href*="/people/"][href$="/posts"]):has(a[href*="/people/"][href$="/followers"])';
     const COMMENT_SCOPE_SELECTOR = '.Comments-container, .CommentsV2, [data-zh-comment-dialog]';
     const COMMENT_DIALOG_SELECTOR = '.Modal, .Modal-content, .Modal-inner, [role="dialog"], [aria-modal="true"], .Drawer-content';
 
@@ -1114,7 +1116,8 @@
         const theme = resolveReadingTheme();
         if (theme && theme.bg) {
             const profileCard = `:is(.HoverCard, .HoverCard-content, .HoverCardContainer, .UserCard, .MemberCard,
-                .Popover-content:has(a[href*="/people/"]):has(.FollowButton))`;
+                .Popover-content:has(a[href*="/people/"]):has(.FollowButton),
+                [data-zh-profile-card])`;
             css += `
             :root {
                 color-scheme: ${theme.dark ? 'dark' : 'light'};
@@ -3204,7 +3207,22 @@
         if (!added || added.length === 0) return m.removedNodes.length > 0 && Array.from(m.removedNodes).every(n => n.nodeType !== 1 || /^zh-/.test(n.id || '') || (n.classList && n.classList.contains('zh-card-close-btn')));
         return Array.from(added).every(n => n.nodeType !== 1 || /^zh-/.test(n.id || '') || (n.classList && (n.classList.contains('zh-card-close-btn') || n.classList.contains('zh-b-mask'))));
     };
+    function markProfileCards(records) {
+        for (const record of records) {
+            for (const node of record.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                const candidates = [...node.querySelectorAll(PROFILE_CARD_STRUCTURE)];
+                const parent = node.closest(PROFILE_CARD_STRUCTURE);
+                if (parent) candidates.push(parent);
+                for (const card of candidates) {
+                    if (!card.querySelector(PROFILE_CARD_STRUCTURE)) card.setAttribute('data-zh-profile-card', '');
+                }
+            }
+        }
+    }
+
     const observer = new MutationObserver((records) => {
+        markProfileCards(records);
         const commentChanged = records.some(record => {
             const target = record.target.nodeType === 1 ? record.target : record.target.parentElement;
             if (target?.closest?.(COMMENT_SCOPE_SELECTOR + ', ' + COMMENT_DIALOG_SELECTOR)) return true;
