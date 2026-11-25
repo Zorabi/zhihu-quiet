@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.10
+// @version      2.0.11
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1206,6 +1206,13 @@
                 opacity: 1 !important;
                 animation: none !important;
                 transition: none !important;
+            }
+            /* 底色透过头像的透明像素显示，保留图片本身和头像形状。 */
+            html body :is(img.Avatar, img.AppHeader-profileAvatar, img.UserAvatar, img.AuthorInfo-avatar,
+                .AuthorInfo-avatar img, .zh-moved-avatar img, [data-zh-moved-avatar] img),
+            html body :is(.Comments-container, .CommentsV2, [data-zh-comment-dialog]) a[href*="/people/"] img,
+            html body ${profileCard} :is(a[href*="/people/"] img, img[src*="needBackground="]) {
+                background-color: var(--zh-reading-line) !important;
             }
             /* 用户名片可能通过 Portal 渲染在评论区外。 */
             html body ${profileCard} {
