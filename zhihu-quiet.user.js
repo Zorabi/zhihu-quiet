@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.13
+// @version      2.0.14
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -36,6 +36,7 @@
         cleanHeaderItems: true,       // 精简顶栏：隐藏「直答」、蓝色「+」提问按钮、「AI Works」及「故事」
         hidePublishCard: true,        // 隐藏首页创作发布卡片（发想法/提问题/写回答/写文章）
         blueCardDivider: true,        // 首页每个话题卡片之间增加蓝色线条间隔
+        hideYanxuanColumns: false,
         hideLowComments: false,       // 隐藏评论少于 10 条的话题内容（默认关闭）
         blockKanshan: true,           // 屏蔽看山 bot 与 AI 总结
         cleanSearch: true,            // 深度净化搜索：清空搜索框轮播推荐词，并移除下拉菜单中的热搜发现
@@ -500,6 +501,17 @@
             .ProfileMain .List-item:not(:last-child):hover {
                 border-bottom-color: rgba(0, 132, 255, 0.65) !important;
             }
+            `;
+        }
+
+        if (config.hideYanxuanColumns) {
+            const paidColumnLink = ':is(a[href^="/market/paid_column/"], a[href^="https://www.zhihu.com/market/paid_column/"], a[href^="https://story.zhihu.com/market/paid_column/"])';
+            css += `
+                .TopstoryItem:has(:is(.ContentItem-title, .FeedSource, .ContentItem-meta) ${paidColumnLink}),
+                .Search-container .List-item:has(.ContentItem-title ${paidColumnLink}),
+                .Search-container .Card:has(> .ContentItem .ContentItem-title ${paidColumnLink}) {
+                    display: none !important;
+                }
             `;
         }
 
@@ -3756,6 +3768,7 @@
             { key: 'cleanHeaderItems', title: '精简顶栏多余入口', desc: '隐藏顶栏「直答」按钮、蓝色「+」提问按钮、导航项「AI Works」、「故事」及分隔线' },
             { key: 'hidePublishCard', title: '隐藏发想法/创作卡片', desc: '隐藏首页顶部的「发想法 / 提问题 / 写回答 / 写文章」卡片' },
             { key: 'blueCardDivider', title: '话题卡片蓝色分割线', desc: '在首页每个问答话题之间添加精致的知乎蓝线条间隔' },
+            { key: 'hideYanxuanColumns', title: '屏蔽盐选专栏', desc: '隐藏推荐流和搜索结果中指向盐选付费专栏的卡片' },
             { key: 'hideLowComments', title: '过滤低评论话题 (<10条)', desc: '自动隐藏首页推荐中评论数量少于 10 条的低讨论度内容（「关注」页为好友动态流，自动跳过不误伤）' },
             { key: 'blockKanshan', title: '关闭「看山 bot」', desc: '隐藏知乎看山 AI 总结、AI 答主回答与相关问答模块' },
             { key: 'cleanSearch', title: '净化搜索推荐与热搜发现', desc: '清空搜索框轮播热搜词，并移除下拉菜单中的「搜索发现」与实时热搜推荐' },
