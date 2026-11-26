@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.12
+// @version      2.0.13
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -1703,6 +1703,15 @@
             }
             `;
         }
+
+        css += `
+            /* 推荐流可能保留空卡片用于滚动定位；只取消其卡片外观。 */
+            html body .Topstory-mainColumn .TopstoryItem:is(:empty, :has(> div:only-child:empty)) {
+                background: transparent !important;
+                border-color: transparent !important;
+                box-shadow: none !important;
+            }
+        `;
 
         return css;
     }
