@@ -2,7 +2,7 @@
 // @name         知乎静阅
 // @name:zh-CN   知乎静阅
 // @namespace    dongx.zhihuquiet
-// @version      2.0.15
+// @version      2.0.16
 // @description  知乎桌面阅读优化脚本：响应式布局、浅色／知乎默认／石墨灰配色，支持正文与评论主题适配、悬浮收起、返回顶部和关键词去跳转。
 // @author       dongx
 // 原始脚本：知乎简化 1.36，作者 chengdu，MIT；个人修改 Copyright (c) 2026 dongx，AGPL-3.0-only。
@@ -37,6 +37,7 @@
         hidePublishCard: true,        // 隐藏首页创作发布卡片（发想法/提问题/写回答/写文章）
         blueCardDivider: true,        // 首页每个话题卡片之间增加蓝色线条间隔
         hideYanxuanColumns: false,
+        hideFictionalAnswers: false,
         hideLowComments: false,       // 隐藏评论少于 10 条的话题内容（默认关闭）
         blockKanshan: true,           // 屏蔽看山 bot 与 AI 总结
         cleanSearch: true,            // 深度净化搜索：清空搜索框轮播推荐词，并移除下拉菜单中的热搜发现
@@ -514,6 +515,10 @@
                     display: none !important;
                 }
             `;
+        }
+
+        if (config.hideFictionalAnswers) {
+            css += `[data-zh-fictional-answer] { display: none !important; }`;
         }
 
         // 7. 隐藏评论少于 10 条的话题卡片
@@ -2296,7 +2301,7 @@
             scanHeaderItems();                                   // 2. 精简顶栏入口
             scanResponsiveHeader();                              // 真实顶栏祖先链自适应
             if (page.isHomePage) scanHomePublishCard();          // 3. 首页创作发布卡片
-            scanYanxuanExcerpts();
+            scanAnswerDisclosures();
             scanLowComments(page);                               // 4. 低评论话题过滤（关注页自动跳过）
             if (page.isQuestionPage) scanQuestionHeader();       // 5. 问题页头部对齐
             scanSidebar(page);                                   // 6. 侧边栏显隐与居中
@@ -2658,18 +2663,30 @@
     // ---------- 模块 4：低评论话题过滤（仅在推荐流生效，严格排除「关注」页） ----------
     // 关注页是用户自己关注的人的动态流，评论数天然偏低，且未展开时按钮文案多为「添加评论」，
     // 会被评论数解析逻辑当成 0 条评论隐藏，等于把用户关注的人整个屏蔽掉，因此必须整页跳过。
-    function scanYanxuanExcerpts() {
-        if (!config.hideYanxuanColumns) return;
+    function scanAnswerDisclosures() {
+        if (!config.hideYanxuanColumns && !config.hideFictionalAnswers) return;
 
-        const cards = '.TopstoryItem, .Search-container .List-item, .Question-mainColumn .List-item:has(.AnswerItem), [data-zh-yanxuan-excerpt]';
+        const cards = '.TopstoryItem, .Search-container .List-item, .Question-mainColumn .List-item:has(.AnswerItem), [data-zh-yanxuan-excerpt], [data-zh-fictional-answer]';
         const excluded = '.RichText, .RichContent-inner, .RichContent-cover, .RichContent-summary, .ContentItem-title, .Comments-container, .CommentsV2';
         const notice = /^本回答节选自盐选专栏(?:[，,]有助于解答该问题)?[。.]?$/;
         document.querySelectorAll(cards).forEach(card => {
-            const hasNotice = card.textContent.includes('节选自盐选专栏') &&
-                Array.from(card.querySelectorAll('a, button, span, div, p')).some(element =>
-                    !element.closest(excluded) &&
-                    notice.test(element.textContent.replace(/\s+/g, '')));
+            const text = card.textContent.replace(/\s+/g, '');
+            const checkYanxuan = config.hideYanxuanColumns && /节选自盐选专栏|盐选专栏名[：:]/.test(text);
+            const checkFiction = config.hideFictionalAnswers && text.includes('内容包含虚构创作');
+            const labels = checkYanxuan || checkFiction
+                ? Array.from(card.querySelectorAll('a, button, span, div, p, section')).filter(element => !element.closest(excluded))
+                : [];
+            const hasNotice = checkYanxuan && labels.some(element => {
+                const text = element.textContent.replace(/\s+/g, '');
+                if (notice.test(text)) return true;
+                // 版权信息的专栏标题可能和标签分属不同节点。
+                return /^盐选专栏名[：:]《[^》]+》/.test(text) &&
+                    (Boolean(element.querySelector('a[href]')) || text.includes('正在受版权保护中'));
+            });
             card.toggleAttribute('data-zh-yanxuan-excerpt', hasNotice);
+            const hasFiction = checkFiction && labels.some(element =>
+                /^(?:创作声明[：:·]?)?内容包含虚构创作[。.]?$/.test(element.textContent.replace(/\s+/g, '')));
+            card.toggleAttribute('data-zh-fictional-answer', hasFiction);
         });
     }
 
@@ -3785,7 +3802,8 @@
             { key: 'cleanHeaderItems', title: '精简顶栏多余入口', desc: '隐藏顶栏「直答」按钮、蓝色「+」提问按钮、导航项「AI Works」、「故事」及分隔线' },
             { key: 'hidePublishCard', title: '隐藏发想法/创作卡片', desc: '隐藏首页顶部的「发想法 / 提问题 / 写回答 / 写文章」卡片' },
             { key: 'blueCardDivider', title: '话题卡片蓝色分割线', desc: '在首页每个问答话题之间添加精致的知乎蓝线条间隔' },
-            { key: 'hideYanxuanColumns', title: '屏蔽盐选专栏', desc: '隐藏盐选专栏卡片和标注「本回答节选自盐选专栏」的回答' },
+            { key: 'hideYanxuanColumns', title: '屏蔽盐选专栏', desc: '隐藏盐选专栏卡片及带盐选节选提示或专栏版权信息的回答' },
+            { key: 'hideFictionalAnswers', title: '屏蔽虚构创作', desc: '隐藏带「内容包含虚构创作」声明的回答' },
             { key: 'hideLowComments', title: '过滤低评论话题 (<10条)', desc: '自动隐藏首页推荐中评论数量少于 10 条的低讨论度内容（「关注」页为好友动态流，自动跳过不误伤）' },
             { key: 'blockKanshan', title: '关闭「看山 bot」', desc: '隐藏知乎看山 AI 总结、AI 答主回答与相关问答模块' },
             { key: 'cleanSearch', title: '净化搜索推荐与热搜发现', desc: '清空搜索框轮播热搜词，并移除下拉菜单中的「搜索发现」与实时热搜推荐' },
